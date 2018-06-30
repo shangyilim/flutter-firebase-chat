@@ -47,25 +47,26 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   TextEditingController _chatTextController = new TextEditingController();
+  TextEditingController _nameTextController = new TextEditingController();
   ScrollController _scrollController = new ScrollController();
 
   bool _hasText = false;
 
+  String _name = '';
+
   void _handleChatSubmit(String text) {
-    print('submitting something?');
+    _chatTextController.clear();
     Firestore.instance.collection('chats').add({
-      'name': 'test',
+      'name': _name,
       'message': text,
       'timestamp': new DateTime.now().millisecondsSinceEpoch
-    }).then((documentReference) => _chatTextController.clear());
+    });
   }
 
   Widget buildChatList() {
     return new Expanded(
         child: new StreamBuilder(
-            stream: Firestore.instance
-                .collection('chats')
-                .snapshots(),
+            stream: Firestore.instance.collection('chats').snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const Text('Loading...');
               return new ListView.builder(
@@ -73,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   itemCount: snapshot.data.documents.length,
                   padding: const EdgeInsets.only(top: 10.0),
                   itemBuilder: (context, index) {
-                    SchedulerBinding.instance.addPostFrameCallback((duration){
+                    SchedulerBinding.instance.addPostFrameCallback((duration) {
                       _scrollController.animateTo(
                         _scrollController.position.maxScrollExtent,
                         duration: const Duration(milliseconds: 300),
@@ -136,7 +137,36 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         ],
       ),
     );
+  }
 
+  @override
+  void initState() {
+    super.initState();
+
+    promptName();
+  }
+
+  promptName() async {
+    String name = await showDialog(
+        context: context,
+        builder: (buildContext) {
+          return new SimpleDialog(
+              contentPadding: new EdgeInsets.all(10.0),
+              title: const Text('Whats your name?'),
+              children: <Widget>[
+                new Column(children: <Widget>[
+                  new TextField(
+                    controller:_nameTextController,
+                      decoration:
+                          new InputDecoration.collapsed(hintText: "Name")),
+                  new FlatButton(onPressed: () {
+                    Navigator.pop(context, _nameTextController.text);
+                  }, child: new Text('OK'))
+                ])
+              ]);
+        });
+
+    this._name = name;
   }
 
   @override
